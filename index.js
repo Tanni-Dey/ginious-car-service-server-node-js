@@ -1,5 +1,6 @@
 const express = require('express')
 const cors = require('cors')
+const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config()
 const app = express();
@@ -12,6 +13,22 @@ app.use(express.json())
 //user name :ginioususer
 //password : MsvxyWFGjPiNdlbH
 
+function verifyJwt(req, res, next) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+        return res.status(401).send({ message: 'unauthoriged access' })
+    }
+    const token = authHeader.split(' ')[1];
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (err, decoded) {
+        if (err) {
+            return res.status(403).send({ message: 'Access forbiden' })
+        }
+        req.decoded = decoded;
+        next()
+    })
+    console.log(authHeader);
+
+}
 
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.0tocw.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`;
@@ -21,6 +38,15 @@ async function run() {
     try {
         await client.connect();
         const serviceCollection = client.db('giniouscar').collection('service');
+        const orderCollection = client.db('giniouscar').collection('order');
+
+        //AUTH
+        app.post('/login', async (req, res) => {
+            const user = req.body;
+            const accessToken = await jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1d' })
+            res.send({ accessToken })
+        })
+
 
         //load all data
         app.get('/service', async (req, res) => {
@@ -44,6 +70,29 @@ async function run() {
             const newService = req.body;
             const result = await serviceCollection.insertOne(newService);
             res.send(result)
+        })
+
+
+        //get orders data for load
+        app.get('/order', verifyJwt, async (req, res) => {
+            const decodedEmail = req.decoded.email;
+            const email = req.query.email
+            if (decodedEmail === email) {
+                const query = { email: email }
+                const cursor = orderCollection.find(query);
+                const orders = await cursor.toArray();
+                res.send(orders)
+            }
+            else {
+                return res.status(403).send({ message: 'forbiden access' })
+            }
+        })
+
+        //order post
+        app.post('/order', async (req, res) => {
+            const order = req.body;
+            const result = await orderCollection.insertOne(order);
+            res.send(result);
         })
 
 
