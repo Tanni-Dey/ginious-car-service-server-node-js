@@ -5,6 +5,8 @@
  * 1. create heroku account
  * 2. verify email
  * 3. install heroku cli
+    3.1 npm uninstall -g heroku-cli
+    3.2 npm i -g heroku
  * 4. heroku login
  * --------------------
  * For each project one time
