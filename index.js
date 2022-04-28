@@ -104,6 +104,12 @@ async function run() {
             res.send(result)
         })
 
+
+        //for changes
+        app.get('/hero', async (req, res) => {
+            res.send('heroku')
+        })
+
     }
     finally {
 
